@@ -11,7 +11,15 @@ export const STRIP = {
   widthMm: 8,
   /** Strip is sold on reels of this length. */
   reelMeters: 5,
+  /** Longest chain fed from one point before the far end visibly dims. */
+  maxFeedMeters: 5,
 }
+
+/** Run a power supply at no more than this share of its rating. */
+const SUPPLY_LOAD = 0.8
+
+/** Whole amps at or above `amps`, ignoring float noise (4 / 0.8 must stay 5, not become 6). */
+const wholeAmps = (amps: number) => Math.max(1, Math.ceil(Math.round(amps * 1e6) / 1e6))
 
 export interface PrintParts {
   straight: number
@@ -47,6 +55,10 @@ export interface Bill {
   reelMeters: number
   /** Minimum power supply current. */
   supplyAmps: number
+  /** Supply current with headroom, so it runs at no more than 80 % load. */
+  recommendedAmps: number
+  /** Too much strip for one feed point: needs power at both ends or injection. */
+  needsInjection: boolean
 }
 
 export function billOfMaterials(strips: number, sideLength: number): Bill {
@@ -59,6 +71,8 @@ export function billOfMaterials(strips: number, sideLength: number): Bill {
     watts,
     stripMeters: Math.ceil(length),
     reelMeters: Math.max(1, Math.ceil(length / STRIP.reelMeters)) * STRIP.reelMeters,
-    supplyAmps: Math.max(1, Math.ceil(watts / STRIP.volts)),
+    supplyAmps: wholeAmps(watts / STRIP.volts),
+    recommendedAmps: wholeAmps(watts / STRIP.volts / SUPPLY_LOAD),
+    needsInjection: length > STRIP.maxFeedMeters,
   }
 }

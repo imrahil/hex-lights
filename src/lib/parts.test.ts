@@ -45,3 +45,17 @@ describe('billOfMaterials', () => {
     expect(billOfMaterials(1, 0.1).supplyAmps).toBe(1)
   })
 })
+
+describe('power supply sizing', () => {
+  it('recommends headroom so the supply runs at 80 % load or less', () => {
+    const bill = billOfMaterials(8, 0.6) // 4.8 m, 48 W, 4 A
+
+    expect(bill.supplyAmps).toBe(4)
+    expect(bill.recommendedAmps).toBe(5)
+  })
+
+  it('flags a chain too long to feed from one end', () => {
+    expect(billOfMaterials(10, 0.5).needsInjection).toBe(false)
+    expect(billOfMaterials(11, 0.5).needsInjection).toBe(true)
+  })
+})
