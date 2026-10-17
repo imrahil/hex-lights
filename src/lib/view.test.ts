@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { Point, View } from '../types'
-import { CANVAS } from './grid'
-import { applyView, clampZoom, MAX_ZOOM, MIN_ZOOM, toCanvas, toWorld } from './view'
+import { applyView, clampZoom, hitTolerance, MAX_ZOOM, MIN_ZOOM, toCanvas, toWorld } from './view'
+
+const CANVAS = { width: 620, height: 520 }
 
 /** Records applyView's transform as a function, the way the canvas would apply it. */
 function forward(view: View): (p: Point) => Point {
@@ -11,7 +12,7 @@ function forward(view: View): (p: Point) => Point {
     scale: (sx: number, sy: number) => steps.push((p) => ({ x: p.x * sx, y: p.y * sy })),
   }
 
-  applyView(ctx as unknown as CanvasRenderingContext2D, view)
+  applyView(ctx as unknown as CanvasRenderingContext2D, view, CANVAS)
 
   // Canvas transforms compose so the last call applies to the point first.
   return (p) => steps.reduceRight((q, step) => step(q), p)
@@ -21,7 +22,7 @@ describe('toWorld', () => {
   it('undoes applyView', () => {
     const view = { zoom: 1.7, pan: { x: 40, y: -25 } }
     const p = { x: 123, y: 456 }
-    const back = toWorld(forward(view)(p), view)
+    const back = toWorld(forward(view)(p), view, CANVAS)
 
     expect(back.x).toBeCloseTo(p.x)
     expect(back.y).toBeCloseTo(p.y)
@@ -30,7 +31,7 @@ describe('toWorld', () => {
   it('zooms about the canvas centre', () => {
     const center = { x: CANVAS.width / 2, y: CANVAS.height / 2 }
 
-    expect(toWorld(center, { zoom: 2.5, pan: { x: 0, y: 0 } })).toEqual(center)
+    expect(toWorld(center, { zoom: 2.5, pan: { x: 0, y: 0 } }, CANVAS)).toEqual(center)
   })
 })
 
@@ -38,7 +39,17 @@ describe('toCanvas', () => {
   it('scales CSS pixels to canvas units', () => {
     const rect = { left: 10, top: 20, width: CANVAS.width / 2, height: CANVAS.height / 2 } as DOMRect
 
-    expect(toCanvas({ x: 60, y: 70 }, rect)).toEqual({ x: 100, y: 100 })
+    expect(toCanvas({ x: 60, y: 70 }, rect, CANVAS)).toEqual({ x: 100, y: 100 })
+  })
+})
+
+describe('hitTolerance', () => {
+  it('keeps the canvas-unit tolerance when the canvas is shown full size', () => {
+    expect(hitTolerance(12, 10, { width: 620 } as DOMRect, CANVAS)).toBe(12)
+  })
+
+  it('grows in canvas units when the canvas is shown small, to stay easy to hit', () => {
+    expect(hitTolerance(12, 10, { width: 310 } as DOMRect, CANVAS)).toBe(20)
   })
 })
 

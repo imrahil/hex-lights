@@ -1,4 +1,16 @@
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
+import type { Extent } from '../types'
+
+/**
+ * Shows a canvas at its logical size at most, shrunk to the panel width, and
+ * short enough that a tall grid still fits on screen.
+ */
+export function canvasStyle({ width, height }: Extent): CSSProperties {
+  return {
+    width: `min(100%, ${width}px, calc(70vh * ${width} / ${height}))`,
+    aspectRatio: `${width} / ${height}`,
+  }
+}
 
 export function Panel({ title, icon, actions, children, className = '' }: {
   title?: ReactNode

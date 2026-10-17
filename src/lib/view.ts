@@ -1,5 +1,4 @@
-import type { Point, View } from '../types'
-import { CANVAS } from './grid'
+import type { Extent, Point, View } from '../types'
 
 export const MIN_ZOOM = 0.5
 export const MAX_ZOOM = 3
@@ -11,24 +10,33 @@ export function clampZoom(zoom: number): number {
 }
 
 /** A pointer position in canvas units (the canvas is scaled with CSS). */
-export function toCanvas(client: Point, rect: DOMRect): Point {
+export function toCanvas(client: Point, rect: DOMRect, canvas: Extent): Point {
   return {
-    x: ((client.x - rect.left) * CANVAS.width) / rect.width,
-    y: ((client.y - rect.top) * CANVAS.height) / rect.height,
+    x: ((client.x - rect.left) * canvas.width) / rect.width,
+    y: ((client.y - rect.top) * canvas.height) / rect.height,
   }
 }
 
+/**
+ * How far from a target a click may land, in canvas units: `units`, or
+ * `cssPixels` on screen when the canvas is shown smaller than its logical
+ * size, so big grids stay easy to hit.
+ */
+export function hitTolerance(units: number, cssPixels: number, rect: DOMRect, canvas: Extent): number {
+  return Math.max(units, (cssPixels * canvas.width) / rect.width)
+}
+
 /** Zoom about the canvas centre, then pan. */
-export function applyView(ctx: CanvasRenderingContext2D, { zoom, pan }: View) {
-  ctx.translate(CANVAS.width / 2 + pan.x, CANVAS.height / 2 + pan.y)
+export function applyView(ctx: CanvasRenderingContext2D, { zoom, pan }: View, canvas: Extent) {
+  ctx.translate(canvas.width / 2 + pan.x, canvas.height / 2 + pan.y)
   ctx.scale(zoom, zoom)
-  ctx.translate(-CANVAS.width / 2, -CANVAS.height / 2)
+  ctx.translate(-canvas.width / 2, -canvas.height / 2)
 }
 
 /** The inverse of applyView: a canvas point back to drawing coordinates. */
-export function toWorld(p: Point, { zoom, pan }: View): Point {
+export function toWorld(p: Point, { zoom, pan }: View, canvas: Extent): Point {
   return {
-    x: (p.x - CANVAS.width / 2 - pan.x) / zoom + CANVAS.width / 2,
-    y: (p.y - CANVAS.height / 2 - pan.y) / zoom + CANVAS.height / 2,
+    x: (p.x - canvas.width / 2 - pan.x) / zoom + canvas.width / 2,
+    y: (p.y - canvas.height / 2 - pan.y) / zoom + canvas.height / 2,
   }
 }

@@ -1,41 +1,86 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_DESIGN, parseDesign, toggleSide } from './design'
+import { DEFAULT_DESIGN, gridCount, parseDesign, resizeGrid, toggleSide } from './design'
 import { buildGrid } from './grid'
 import { hexAt, hexSides } from './fixtures.test-utils'
 
-const valid = new Set(['a|b', 'b|c'])
+const grid = buildGrid()
+const big = buildGrid(6, 5)
+const ring = hexSides(grid, hexAt(grid, 1, 1)).map((s) => s.key)
+const farRing = hexSides(big, hexAt(big, 4, 5)).map((s) => s.key)
 
 describe('parseDesign', () => {
   it('falls back to the default when nothing is saved', () => {
-    expect(parseDesign(null, valid)).toEqual(DEFAULT_DESIGN)
+    expect(parseDesign(null)).toEqual(DEFAULT_DESIGN)
   })
 
   it('falls back to the default for corrupt JSON', () => {
-    expect(parseDesign('{not json', valid)).toEqual(DEFAULT_DESIGN)
+    expect(parseDesign('{not json')).toEqual(DEFAULT_DESIGN)
   })
 
   it('restores a saved design', () => {
-    const saved = { sides: ['a|b'], sideLength: 0.75, power: 'a' }
+    const saved = { cols: 6, rows: 5, sides: [...ring, ...farRing], sideLength: 0.75, power: farRing[0].split('|')[0] }
 
-    expect(parseDesign(JSON.stringify(saved), valid)).toEqual(saved)
+    expect(parseDesign(JSON.stringify(saved))).toEqual(saved)
   })
 
-  it('drops sides that are not on the grid, and duplicates', () => {
-    expect(parseDesign(JSON.stringify({ sides: ['a|b', 'x|y', 'a|b', 3] }), valid).sides).toEqual(['a|b'])
+  it('reads a design saved before the grid size was configurable as 4 × 4', () => {
+    const design = parseDesign(JSON.stringify({ sides: ring, sideLength: 0.5, power: null }))
+
+    expect(design.cols).toBe(4)
+    expect(design.rows).toBe(4)
+    expect(design.sides).toEqual(ring)
+  })
+
+  it('drops sides that are not on its grid, and duplicates', () => {
+    const raw = { cols: 4, rows: 4, sides: [ring[0], 'x|y', ring[0], 3, farRing[0]] }
+
+    expect(parseDesign(JSON.stringify(raw)).sides).toEqual([ring[0]])
   })
 
   it('keeps the side length within the slider range', () => {
-    expect(parseDesign(JSON.stringify({ sideLength: 10 }), valid).sideLength).toBe(2)
-    expect(parseDesign(JSON.stringify({ sideLength: 'long' }), valid).sideLength).toBe(DEFAULT_DESIGN.sideLength)
+    expect(parseDesign(JSON.stringify({ sideLength: 10 })).sideLength).toBe(2)
+    expect(parseDesign(JSON.stringify({ sideLength: 'long' })).sideLength).toBe(DEFAULT_DESIGN.sideLength)
   })
 
-  it('ignores a power input that is not a vertex key', () => {
-    expect(parseDesign(JSON.stringify({ power: 5 }), valid).power).toBeNull()
+  it('ignores a power input that is not on a selected side', () => {
+    expect(parseDesign(JSON.stringify({ sides: ring, power: 5 })).power).toBeNull()
+    expect(parseDesign(JSON.stringify({ sides: ring, power: 'nowhere' })).power).toBeNull()
+  })
+})
+
+describe('gridCount', () => {
+  it('keeps column and row counts within limits', () => {
+    expect(gridCount(0)).toBe(1)
+    expect(gridCount(20)).toBe(8)
+    expect(gridCount(5.4)).toBe(5)
+    expect(gridCount('lots')).toBe(4)
+    expect(gridCount(undefined)).toBe(4)
+  })
+})
+
+describe('resizeGrid', () => {
+  it('keeps every side when growing', () => {
+    const design = { ...DEFAULT_DESIGN, sides: ring }
+
+    expect(resizeGrid(design, 8, 8).sides).toEqual(ring)
+  })
+
+  it('drops sides that no longer fit when shrinking, and their power input', () => {
+    const design = { ...DEFAULT_DESIGN, cols: 6, rows: 5, sides: [...ring, ...farRing], power: farRing[2].split('|')[0] }
+    const smaller = resizeGrid(design, 4, 4)
+
+    expect(smaller.sides).toEqual(ring)
+    expect(smaller.power).toBeNull()
+  })
+
+  it('keeps sides on the edge shared with a hexagon that was removed', () => {
+    const edge = hexSides(grid, hexAt(grid, 0, 0)).map((s) => s.key)
+
+    expect(resizeGrid({ ...DEFAULT_DESIGN, sides: edge }, 1, 1).sides).toEqual(edge)
   })
 })
 
 describe('toggleSide', () => {
-  const grid = buildGrid()
   const [first, second] = hexSides(grid, hexAt(grid, 1, 1))
   const shared = first.a.key === second.a.key || first.a.key === second.b.key ? first.a : first.b
   const only = first.a === shared ? first.b : first.a

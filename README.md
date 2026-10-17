@@ -5,8 +5,8 @@ A planner for a hexagon LED garage light, built from COB LED strip in
 
 **Live:** https://imrahil.github.io/hex-lights/
 
-- **Design the pattern**: click hexagon sides on a 4 × 4 honeycomb to add
-  or remove a strip. Dimension lines show the overall width and height.
+- **Design the pattern**: click hexagon sides on a honeycomb of 1 to 8
+  columns and rows (4 × 4 to start) to add or remove a strip. Dimension lines show the overall width and height.
 - **Wiring schematic**: the order and direction to wire the strips, where the
   12 V supply goes in, and the jumper wires needed between runs, with their
   lengths. Click a junction to move the power input. Scroll to zoom, drag

@@ -36,12 +36,14 @@ before every deploy.
 
 Static React SPA on GitHub Pages; no backend.
 
-- **`src/lib/grid.ts`** builds the honeycomb once: hexagons plus every side
-  listed once. **Vertex keys are lattice indices** (half hexagon widths by
-  half sizes from the origin), so neighbouring hexagons agree on shared
-  corners without comparing floats. A side key is its two vertex keys,
-  sorted. Saved designs store side keys: changing the origin, size or key
-  format breaks them.
+- **`src/lib/grid.ts`** builds a honeycomb of `cols` × `rows` (1–8,
+  `GRID_LIMITS`): hexagons, every side listed once, and the canvas extent
+  (`width`/`height`, 620 × 520 for 4 × 4). **Vertex keys are lattice
+  indices** (half hexagon widths by half sizes from `ORIGIN`), so
+  neighbouring hexagons agree on shared corners without comparing floats,
+  and a side keeps its key in every grid size. A side key is its two vertex
+  keys, sorted. Saved designs store side keys: changing `ORIGIN`,
+  `HEX_SIZE` or the key format breaks them.
 - **`src/lib/wiring.ts`**: `junctions()` (sides per vertex) and
   `planWiring()`, which orders the selected sides into runs joined by
   jumpers. Runs start at odd junctions and follow Fleury's rule; see the
@@ -54,11 +56,16 @@ Static React SPA on GitHub Pages; no backend.
 - **`src/lib/view.ts`**: schematic zoom/pan transform and its inverse for hit
   testing. **`src/lib/draw.ts`**: all canvas drawing, as plain functions.
 - **`src/lib/design.ts`**: the persisted design (`hex-lights:design` in
-  localStorage), validated against the grid on load. Change sides through
-  `toggleSide()`, which drops a power input no selected side touches.
-- Both canvases use CANVAS logical units (620 × 520), are scaled with CSS,
-  and are backed at `devicePixelRatio` (`src/hooks/useCanvas.ts`). Convert
-  pointer positions with `toCanvas()` (and `toWorld()` on the schematic).
+  localStorage), including the grid size, validated against its grid on
+  load (designs saved without a size are 4 × 4). Change it through
+  `toggleSide()` and `resizeGrid()`, which drop sides that no longer fit and
+  a power input no selected side touches.
+- Both canvases draw in the grid's logical units, are sized with CSS
+  (`canvasStyle()`), and are backed at their shown size times
+  `devicePixelRatio` (`src/hooks/useCanvas.ts`). Lines and text are scaled by
+  `uiScale()` so they stay readable when a big grid is shown small. Convert
+  pointer positions with `toCanvas()` (and `toWorld()` on the schematic) and
+  size hit areas with `hitTolerance()`.
 - `src/hooks/useZoomPan.ts` attaches the wheel listener natively with
   `passive: false` (React's `onWheel` can't prevent page scroll) and swallows
   the click that ends a drag.

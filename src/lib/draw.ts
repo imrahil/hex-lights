@@ -1,6 +1,6 @@
-import type { Grid, Point, Side, View, WiringPlan } from '../types'
+import type { Extent, Grid, Point, Side, View, WiringPlan } from '../types'
 import { bounds, formatMeters, jumperLengths, patternSize, type Bounds, type Size } from './dimensions'
-import { CANVAS, hexCorners } from './grid'
+import { hexCorners } from './grid'
 import { STRIP } from './parts'
 import { applyView } from './view'
 import type { Junction } from './wiring'
@@ -54,46 +54,57 @@ function label(ctx: CanvasRenderingContext2D, text: string, at: Point, font: str
   ctx.fillText(text, at.x, at.y)
 }
 
-export function drawPattern(ctx: CanvasRenderingContext2D, grid: Grid, sides: readonly Side[], sideLength: number) {
-  ctx.clearRect(0, 0, CANVAS.width, CANVAS.height)
+/**
+ * How much to enlarge lines and text, in canvas units, so they keep a
+ * readable size when a big grid's canvas is shown small. `unitsPerPixel` is
+ * canvas units per CSS pixel on screen.
+ */
+export function uiScale(unitsPerPixel: number): number {
+  return Math.max(1, unitsPerPixel * 0.9)
+}
+
+const font = (px: number, k: number, weight = 'bold') => `${weight} ${px * k}px sans-serif`
+
+export function drawPattern(ctx: CanvasRenderingContext2D, grid: Grid, sides: readonly Side[], sideLength: number, k = 1) {
+  ctx.clearRect(0, 0, grid.width, grid.height)
 
   for (const hex of grid.hexes) {
     hexPath(ctx, hex, grid.size)
     ctx.fillStyle = COLORS.hexFill
     ctx.fill()
     ctx.strokeStyle = COLORS.hexLine
-    ctx.lineWidth = 2
+    ctx.lineWidth = 2 * k
     ctx.stroke()
   }
 
   for (const side of sides) {
-    line(ctx, side.a, side.b, COLORS.strip, 6)
+    line(ctx, side.a, side.b, COLORS.strip, 6 * k)
   }
 
   const box = bounds(sides)
   const size = patternSize(sides, grid.size, sideLength)
 
   if (box && size) {
-    drawDimensions(ctx, box, size)
+    drawDimensions(ctx, box, size, grid, k)
   }
 }
 
-/** Gap between the pattern and its dimension lines, in canvas units. */
+/** Gap between the pattern and its dimension lines, in canvas units. Fixed: the grid margins are sized for it. */
 const DIMENSION_OFFSET = 18
 
 /**
  * Width below the pattern and height to its left, like a technical drawing.
  * Either flips to the other side when it would leave the canvas.
  */
-function drawDimensions(ctx: CanvasRenderingContext2D, box: Bounds, size: Size) {
+function drawDimensions(ctx: CanvasRenderingContext2D, box: Bounds, size: Size, canvas: Extent, k: number) {
   if (size.width > 0) {
-    const below = box.max.y + DIMENSION_OFFSET + 10 <= CANVAS.height
+    const below = box.max.y + DIMENSION_OFFSET + 10 <= canvas.height
     const y = below ? box.max.y + DIMENSION_OFFSET : box.min.y - DIMENSION_OFFSET
     const edge = below ? box.max.y : box.min.y
 
-    extension(ctx, { x: box.min.x, y: edge }, { x: box.min.x, y })
-    extension(ctx, { x: box.max.x, y: edge }, { x: box.max.x, y })
-    dimension(ctx, { x: box.min.x, y }, { x: box.max.x, y }, formatMeters(size.width))
+    extension(ctx, { x: box.min.x, y: edge }, { x: box.min.x, y }, k)
+    extension(ctx, { x: box.max.x, y: edge }, { x: box.max.x, y }, k)
+    dimension(ctx, { x: box.min.x, y }, { x: box.max.x, y }, formatMeters(size.width), k)
   }
 
   if (size.height > 0) {
@@ -101,27 +112,27 @@ function drawDimensions(ctx: CanvasRenderingContext2D, box: Bounds, size: Size) 
     const x = left ? box.min.x - DIMENSION_OFFSET : box.max.x + DIMENSION_OFFSET
     const edge = left ? box.min.x : box.max.x
 
-    extension(ctx, { x: edge, y: box.min.y }, { x, y: box.min.y })
-    extension(ctx, { x: edge, y: box.max.y }, { x, y: box.max.y })
-    dimension(ctx, { x, y: box.min.y }, { x, y: box.max.y }, formatMeters(size.height))
+    extension(ctx, { x: edge, y: box.min.y }, { x, y: box.min.y }, k)
+    extension(ctx, { x: edge, y: box.max.y }, { x, y: box.max.y }, k)
+    dimension(ctx, { x, y: box.min.y }, { x, y: box.max.y }, formatMeters(size.height), k)
   }
 }
 
-function extension(ctx: CanvasRenderingContext2D, from: Point, to: Point) {
-  ctx.setLineDash([3, 3])
+function extension(ctx: CanvasRenderingContext2D, from: Point, to: Point, k: number) {
+  ctx.setLineDash([3 * k, 3 * k])
   ctx.beginPath()
   ctx.moveTo(from.x, from.y)
   ctx.lineTo(to.x, to.y)
   ctx.strokeStyle = COLORS.extension
-  ctx.lineWidth = 1
+  ctx.lineWidth = k
   ctx.stroke()
   ctx.setLineDash([])
 }
 
 /** A measured line with end ticks and its length on a pill in the middle, turned to run along it. */
-function dimension(ctx: CanvasRenderingContext2D, from: Point, to: Point, text: string) {
+function dimension(ctx: CanvasRenderingContext2D, from: Point, to: Point, text: string, k: number) {
   const angle = Math.atan2(to.y - from.y, to.x - from.x)
-  const tick = { x: 5 * Math.cos(angle + Math.PI / 4), y: 5 * Math.sin(angle + Math.PI / 4) }
+  const tick = { x: 5 * k * Math.cos(angle + Math.PI / 4), y: 5 * k * Math.sin(angle + Math.PI / 4) }
 
   ctx.beginPath()
   ctx.moveTo(from.x, from.y)
@@ -133,7 +144,7 @@ function dimension(ctx: CanvasRenderingContext2D, from: Point, to: Point, text: 
   }
 
   ctx.strokeStyle = COLORS.dimension
-  ctx.lineWidth = 1.5
+  ctx.lineWidth = 1.5 * k
   ctx.lineCap = 'butt'
   ctx.stroke()
 
@@ -141,16 +152,16 @@ function dimension(ctx: CanvasRenderingContext2D, from: Point, to: Point, text: 
   ctx.translate((from.x + to.x) / 2, (from.y + to.y) / 2)
   // Keep text upright: vertical lines read bottom to top.
   ctx.rotate(Math.abs(angle) > Math.PI / 4 ? -Math.PI / 2 : 0)
-  ctx.font = 'bold 11px sans-serif'
+  ctx.font = font(11, k)
 
-  const width = ctx.measureText(text).width + 10
+  const width = ctx.measureText(text).width + 10 * k
 
   ctx.fillStyle = '#fff'
-  ctx.fillRect(-width / 2, -8, width, 16)
+  ctx.fillRect(-width / 2, -8 * k, width, 16 * k)
   ctx.strokeStyle = COLORS.extension
-  ctx.lineWidth = 1
-  ctx.strokeRect(-width / 2, -8, width, 16)
-  label(ctx, text, { x: 0, y: 0 }, 'bold 11px sans-serif', COLORS.dimension)
+  ctx.lineWidth = k
+  ctx.strokeRect(-width / 2, -8 * k, width, 16 * k)
+  label(ctx, text, { x: 0, y: 0 }, font(11, k), COLORS.dimension)
   ctx.restore()
 }
 
@@ -162,19 +173,23 @@ export interface SchematicInput {
   view: View
   /** Metres per hexagon side, for jumper lengths. */
   sideLength: number
+  /** Line and text enlargement, from uiScale(). */
+  k?: number
 }
 
-export function drawSchematic(ctx: CanvasRenderingContext2D, { grid, sides, plan, junctions, view, sideLength }: SchematicInput) {
-  ctx.clearRect(0, 0, CANVAS.width, CANVAS.height)
+export function drawSchematic(ctx: CanvasRenderingContext2D, { grid, sides, plan, junctions, view, sideLength, k = 1 }: SchematicInput) {
+  const canvas: Extent = grid
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
 
   if (sides.length === 0) {
-    label(ctx, 'Select sides above to see wiring diagram', { x: CANVAS.width / 2, y: CANVAS.height / 2 }, '14px sans-serif', COLORS.endCap)
+    label(ctx, 'Select sides above to see wiring diagram', { x: canvas.width / 2, y: canvas.height / 2 }, font(14, k, 'normal'), COLORS.endCap)
 
     return
   }
 
   ctx.save()
-  applyView(ctx, view)
+  applyView(ctx, view, canvas)
 
   // Faint outline of the whole honeycomb for orientation.
   ctx.globalAlpha = 0.3
@@ -182,88 +197,96 @@ export function drawSchematic(ctx: CanvasRenderingContext2D, { grid, sides, plan
   for (const hex of grid.hexes) {
     hexPath(ctx, hex, grid.size)
     ctx.strokeStyle = COLORS.ghostLine
-    ctx.lineWidth = 1
+    ctx.lineWidth = k
     ctx.stroke()
   }
 
   ctx.globalAlpha = 1
 
   for (const side of sides) {
-    line(ctx, side.a, side.b, COLORS.strip, 8)
+    line(ctx, side.a, side.b, COLORS.strip, 8 * k)
   }
 
   const lengths = jumperLengths(plan.jumpers, grid.size, sideLength)
 
   plan.jumpers.forEach((jumper, i) => {
-    ctx.setLineDash([8, 6])
-    line(ctx, jumper.from, jumper.to, COLORS.jumper, 3)
+    ctx.setLineDash([8 * k, 6 * k])
+    line(ctx, jumper.from, jumper.to, COLORS.jumper, 3 * k)
     ctx.setLineDash([])
 
     const mid = { x: (jumper.from.x + jumper.to.x) / 2, y: (jumper.from.y + jumper.to.y) / 2 }
     const text = `J${i + 1} · ${formatMeters(lengths[i])}`
 
-    ctx.font = 'bold 10px sans-serif'
+    ctx.font = font(10, k)
 
-    const width = ctx.measureText(text).width + 8
+    const width = ctx.measureText(text).width + 8 * k
 
     ctx.fillStyle = COLORS.jumperFill
-    ctx.fillRect(mid.x - width / 2, mid.y - 9, width, 18)
+    ctx.fillRect(mid.x - width / 2, mid.y - 9 * k, width, 18 * k)
     ctx.strokeStyle = COLORS.jumper
-    ctx.lineWidth = 1
-    ctx.strokeRect(mid.x - width / 2, mid.y - 9, width, 18)
-    label(ctx, text, mid, 'bold 10px sans-serif', COLORS.jumper)
+    ctx.lineWidth = k
+    ctx.strokeRect(mid.x - width / 2, mid.y - 9 * k, width, 18 * k)
+    label(ctx, text, mid, font(10, k), COLORS.jumper)
   })
 
   // Flow direction arrow and order number on every strip.
   plan.runs.forEach((run, i) => {
     const mid = { x: (run.from.x + run.to.x) / 2, y: (run.from.y + run.to.y) / 2 }
     const angle = Math.atan2(run.to.y - run.from.y, run.to.x - run.from.x)
+    const at = (r: number, a: number) => ({ x: mid.x + r * k * Math.cos(a), y: mid.y + r * k * Math.sin(a) })
+    const tip = at(10, angle)
+    const left = at(-7, angle - 0.5)
+    const right = at(-7, angle + 0.5)
 
     ctx.beginPath()
-    ctx.moveTo(mid.x + 10 * Math.cos(angle), mid.y + 10 * Math.sin(angle))
-    ctx.lineTo(mid.x - 7 * Math.cos(angle - 0.5), mid.y - 7 * Math.sin(angle - 0.5))
-    ctx.lineTo(mid.x - 7 * Math.cos(angle + 0.5), mid.y - 7 * Math.sin(angle + 0.5))
+    ctx.moveTo(tip.x, tip.y)
+    ctx.lineTo(left.x, left.y)
+    ctx.lineTo(right.x, right.y)
     ctx.closePath()
     ctx.fillStyle = COLORS.flow
     ctx.fill()
 
-    const badge = { x: mid.x + 14 * Math.cos(angle + Math.PI / 2), y: mid.y + 14 * Math.sin(angle + Math.PI / 2) }
+    const badge = at(14, angle + Math.PI / 2)
 
     ctx.beginPath()
-    ctx.arc(badge.x, badge.y, 9, 0, Math.PI * 2)
+    ctx.arc(badge.x, badge.y, 9 * k, 0, Math.PI * 2)
     ctx.fillStyle = '#fff'
     ctx.fill()
     ctx.strokeStyle = COLORS.flow
-    ctx.lineWidth = 2
+    ctx.lineWidth = 2 * k
     ctx.stroke()
-    label(ctx, String(i + 1), badge, 'bold 10px sans-serif', COLORS.flow)
+    label(ctx, String(i + 1), badge, font(10, k), COLORS.flow)
   })
 
   for (const { vertex, sides: count } of junctions.values()) {
     const isStart = vertex.key === plan.start?.key
 
     ctx.beginPath()
-    ctx.arc(vertex.x, vertex.y, isStart ? 12 : 7, 0, Math.PI * 2)
+    ctx.arc(vertex.x, vertex.y, (isStart ? 12 : 7) * k, 0, Math.PI * 2)
     ctx.fillStyle = isStart ? COLORS.power : count === 1 ? COLORS.endCap : COLORS.joint
     ctx.fill()
     ctx.strokeStyle = '#fff'
-    ctx.lineWidth = 2
+    ctx.lineWidth = 2 * k
     ctx.stroke()
 
     if (isStart) {
-      label(ctx, '+', vertex, 'bold 12px sans-serif', '#fff')
-      label(ctx, `${STRIP.volts}V DC`, { x: vertex.x, y: vertex.y - 20 }, 'bold 11px sans-serif', COLORS.powerText)
+      label(ctx, '+', vertex, font(12, k), '#fff')
+      label(ctx, `${STRIP.volts}V DC`, { x: vertex.x, y: vertex.y - 20 * k }, font(11, k), COLORS.powerText)
     }
   }
 
   ctx.restore()
-  drawLegend(ctx, view.zoom)
+  drawLegend(ctx, view.zoom, canvas, k)
 }
 
-/** Fixed to the canvas, unaffected by zoom and pan. */
-function drawLegend(ctx: CanvasRenderingContext2D, zoom: number) {
+/** Fixed to the canvas, unaffected by zoom and pan. Drawn from the bottom corners, enlarged by `k`. */
+function drawLegend(ctx: CanvasRenderingContext2D, zoom: number, canvas: Extent, k: number) {
+  ctx.save()
+  ctx.translate(0, canvas.height)
+  ctx.scale(k, k)
+
   const x = 15
-  const y = CANVAS.height - 85
+  const y = -85
 
   ctx.fillStyle = 'rgba(255,255,255,0.95)'
   ctx.fillRect(10, y - 10, 200, 90)
@@ -299,5 +322,6 @@ function drawLegend(ctx: CanvasRenderingContext2D, zoom: number) {
   ctx.fillStyle = COLORS.muted
   ctx.font = '10px sans-serif'
   ctx.textAlign = 'right'
-  ctx.fillText(`Zoom: ${Math.round(zoom * 100)}%`, CANVAS.width - 15, CANVAS.height - 10)
+  ctx.fillText(`Zoom: ${Math.round(zoom * 100)}%`, canvas.width / k - 15, -10)
+  ctx.restore()
 }

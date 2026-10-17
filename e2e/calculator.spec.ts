@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { buildGrid } from '../src/lib/grid'
 import { clickCanvas, dragCanvas, hexSides, midpoint, pattern, savedDesign, schematic, selectSides, sidesAt } from './helpers'
 
 test.beforeEach(async ({ page }) => {
@@ -116,4 +117,42 @@ test('removing the sides at the power input releases it', async ({ page }) => {
   await clickCanvas(pattern(page), midpoint(first))
   await expect(page.getByTestId('strips')).toHaveText('1')
   expect((await savedDesign(page)).power).toBeNull()
+})
+
+test('the honeycomb grows and shrinks, and remembers its size', async ({ page }) => {
+  const more = (what: string) => page.getByRole('button', { name: `More ${what}` })
+  const fewer = (what: string) => page.getByRole('button', { name: `Fewer ${what}` })
+  const big = buildGrid(6, 5)
+
+  await selectSides(page, hexSides(1, 1))
+  await more('columns').click()
+  await more('columns').click()
+  await more('rows').click()
+  await expect(page.getByLabel('Columns', { exact: true })).toHaveText('6')
+  await expect(page.getByLabel('Rows', { exact: true })).toHaveText('5')
+
+  const box = (await pattern(page).boundingBox())!
+
+  expect(box.width / box.height).toBeCloseTo(big.width / big.height, 1)
+
+  await selectSides(page, hexSides(4, 5, big), big)
+  await expect(page.getByTestId('strips')).toHaveText('12')
+
+  await page.reload()
+  await expect(page.getByLabel('Columns', { exact: true })).toHaveText('6')
+  await expect(page.getByTestId('strips')).toHaveText('12')
+
+  await fewer('columns').click()
+  await fewer('columns').click()
+  await fewer('rows').click()
+  await expect(page.getByTestId('strips')).toHaveText('6')
+})
+
+test('grid size stops at its limits', async ({ page }) => {
+  for (let i = 0; i < 3; i++) {
+    await page.getByRole('button', { name: 'Fewer rows' }).click()
+  }
+
+  await expect(page.getByLabel('Rows', { exact: true })).toHaveText('1')
+  await expect(page.getByRole('button', { name: 'Fewer rows' })).toBeDisabled()
 })
