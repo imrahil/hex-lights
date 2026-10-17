@@ -1,17 +1,18 @@
 import { useCallback, type MouseEvent } from 'react'
-import type { Grid } from '../types'
+import type { Grid, Side } from '../types'
 import { useCanvas } from '../hooks/useCanvas'
 import { drawPattern } from '../lib/draw'
 import { CANVAS, sideAt } from '../lib/grid'
 import { toCanvas } from '../lib/view'
 import { Hint, Panel } from './ui'
 
-export function PatternCanvas({ grid, selected, onToggle }: {
+export function PatternCanvas({ grid, sides, sideLength, onToggle }: {
   grid: Grid
-  selected: ReadonlySet<string>
+  sides: readonly Side[]
+  sideLength: number
   onToggle: (sideKey: string) => void
 }) {
-  const draw = useCallback((ctx: CanvasRenderingContext2D) => drawPattern(ctx, grid, selected), [grid, selected])
+  const draw = useCallback((ctx: CanvasRenderingContext2D) => drawPattern(ctx, grid, sides, sideLength), [grid, sides, sideLength])
   const ref = useCanvas(draw)
 
   const onClick = (e: MouseEvent<HTMLCanvasElement>) => {

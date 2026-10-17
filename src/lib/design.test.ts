@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_DESIGN, parseDesign } from './design'
+import { DEFAULT_DESIGN, parseDesign, toggleSide } from './design'
+import { buildGrid } from './grid'
+import { hexAt, hexSides } from './fixtures.test-utils'
 
 const valid = new Set(['a|b', 'b|c'])
 
@@ -29,5 +31,31 @@ describe('parseDesign', () => {
 
   it('ignores a power input that is not a vertex key', () => {
     expect(parseDesign(JSON.stringify({ power: 5 }), valid).power).toBeNull()
+  })
+})
+
+describe('toggleSide', () => {
+  const grid = buildGrid()
+  const [first, second] = hexSides(grid, hexAt(grid, 1, 1))
+  const shared = first.a.key === second.a.key || first.a.key === second.b.key ? first.a : first.b
+  const only = first.a === shared ? first.b : first.a
+
+  it('adds and removes a side', () => {
+    const added = toggleSide(DEFAULT_DESIGN, first.key, grid.sides)
+
+    expect(added.sides).toEqual([first.key])
+    expect(toggleSide(added, first.key, grid.sides).sides).toEqual([])
+  })
+
+  it('keeps the power input while a selected side still touches it', () => {
+    const design = { ...DEFAULT_DESIGN, sides: [first.key, second.key], power: shared.key }
+
+    expect(toggleSide(design, first.key, grid.sides).power).toBe(shared.key)
+  })
+
+  it('drops the power input when its last side is removed', () => {
+    const design = { ...DEFAULT_DESIGN, sides: [first.key, second.key], power: only.key }
+
+    expect(toggleSide(design, first.key, grid.sides).power).toBeNull()
   })
 })

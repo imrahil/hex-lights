@@ -6,7 +6,8 @@ import { ShoppingList } from './components/ShoppingList'
 import { SideLengthSlider } from './components/SideLengthSlider'
 import { StripSpecs } from './components/StripSpecs'
 import { Summary } from './components/Summary'
-import { loadDesign, saveDesign } from './lib/design'
+import { loadDesign, saveDesign, toggleSide } from './lib/design'
+import { jumperLengths, patternSize } from './lib/dimensions'
 import { buildGrid } from './lib/grid'
 import { billOfMaterials, printParts } from './lib/parts'
 import { junctions, planWiring } from './lib/wiring'
@@ -25,11 +26,10 @@ export function App() {
   const plan = useMemo(() => planWiring(sides, design.power), [sides, design.power])
   const parts = useMemo(() => printParts(sides), [sides])
   const bill = billOfMaterials(sides.length, design.sideLength)
+  const size = patternSize(sides, GRID.size, design.sideLength)
+  const jumpers = jumperLengths(plan.jumpers, GRID.size, design.sideLength)
 
-  const toggleSide = (key: string) => setDesign((d) => ({
-    ...d,
-    sides: d.sides.includes(key) ? d.sides.filter((k) => k !== key) : [...d.sides, key],
-  }))
+  const onToggleSide = (key: string) => setDesign((d) => toggleSide(d, key, GRID.sides))
 
   const togglePower = (key: string) => setDesign((d) => ({ ...d, power: d.power === key ? null : key }))
 
@@ -42,16 +42,16 @@ export function App() {
 
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="space-y-4 lg:col-span-2">
-            <PatternCanvas grid={GRID} selected={selected} onToggle={toggleSide} />
-            <SchematicCanvas grid={GRID} sides={sides} plan={plan} junctions={joints} onPickPower={togglePower} />
+            <PatternCanvas grid={GRID} sides={sides} sideLength={design.sideLength} onToggle={onToggleSide} />
+            <SchematicCanvas grid={GRID} sides={sides} sideLength={design.sideLength} plan={plan} junctions={joints} onPickPower={togglePower} />
             <SideLengthSlider value={design.sideLength} onChange={(sideLength) => setDesign((d) => ({ ...d, sideLength }))} />
           </div>
 
           <div className="space-y-4">
-            <Summary strips={sides.length} bill={bill} jumpers={plan.jumpers.length} onReset={reset} />
+            <Summary strips={sides.length} size={size} bill={bill} jumpers={plan.jumpers.length} onReset={reset} />
             <PrintPartsCard parts={parts} sideLength={design.sideLength} />
             <StripSpecs />
-            <ShoppingList bill={bill} jumpers={plan.jumpers.length} />
+            <ShoppingList bill={bill} jumperLengths={jumpers} />
           </div>
         </div>
 

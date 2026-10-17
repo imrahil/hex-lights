@@ -12,11 +12,13 @@ test('selecting a hexagon fills in the calculations and parts', async ({ page })
   await expect(page.getByTestId('length')).toHaveText('3.00 m')
   await expect(page.getByTestId('power')).toHaveText('30.0 W')
   await expect(page.getByTestId('jumpers')).toHaveText('0')
+  await expect(page.getByTestId('size')).toHaveText('0.87 × 1.00 m')
   await expect(page.getByTestId('part-straight')).toHaveText('6')
   await expect(page.getByTestId('part-corners')).toHaveText('6')
   await expect(page.getByTestId('part-end-caps')).toHaveText('0')
   await expect(page.getByTestId('shopping-list')).toContainText('3 m LED COB strip (buy 5 m)')
-  await expect(page.getByTestId('shopping-list')).toContainText('3 A minimum')
+  await expect(page.getByTestId('shopping-list')).toContainText('3 A minimum, 4 A recommended')
+  await expect(page.getByTestId('injection-warning')).toBeHidden()
 })
 
 test('clicking a selected side removes it', async ({ page }) => {
@@ -37,15 +39,16 @@ test('a Y junction needs a jumper wire', async ({ page }) => {
   await expect(page.getByTestId('part-three-way')).toHaveText('1')
   await expect(page.getByTestId('part-end-caps')).toHaveText('3')
   await expect(page.getByTestId('jumpers')).toHaveText('1')
-  await expect(page.getByTestId('shopping-list')).toContainText('1 jumper wire (2-conductor)')
+  await expect(page.getByTestId('shopping-list')).toContainText('1 jumper wire (2-conductor, at least 0.50 m in total)')
 })
 
 test('side length changes totals', async ({ page }) => {
   await selectSides(page, hexSides(1, 1).slice(0, 2))
-  await page.getByLabel(/Side Length/).fill('1.25')
+  await page.getByLabel(/Side Length/).fill('1.2')
 
-  await expect(page.getByTestId('length')).toHaveText('2.50 m')
-  await expect(page.getByText('Channel length: 125 cm each')).toBeVisible()
+  await expect(page.getByTestId('length')).toHaveText('2.40 m')
+  await expect(page.getByTestId('size')).toHaveText('1.04 × 1.80 m')
+  await expect(page.getByText('Channel length: 120 cm each')).toBeVisible()
 })
 
 test('reset clears the selection', async ({ page }) => {
@@ -90,4 +93,27 @@ test('the wheel zooms the schematic without scrolling the page', async ({ page }
   await page.mouse.wheel(0, -200)
 
   expect(await page.evaluate(() => window.scrollY)).toBe(before)
+})
+
+test('more than 5 m on one chain warns about dimming', async ({ page }) => {
+  const twoHexagons = [...new Set([...hexSides(1, 1), ...hexSides(1, 2)])]
+
+  await selectSides(page, twoHexagons)
+
+  await expect(page.getByTestId('length')).toHaveText('5.50 m')
+  await expect(page.getByTestId('size')).toHaveText('1.73 × 1.00 m')
+  await expect(page.getByTestId('injection-warning')).toBeVisible()
+})
+
+test('removing the sides at the power input releases it', async ({ page }) => {
+  const [first, second] = hexSides(1, 1)
+  const end = first.a.key === second.a.key || first.a.key === second.b.key ? first.b : first.a
+
+  await selectSides(page, [first, second])
+  await clickCanvas(schematic(page), end)
+  expect((await savedDesign(page)).power).toBe(end.key)
+
+  await clickCanvas(pattern(page), midpoint(first))
+  await expect(page.getByTestId('strips')).toHaveText('1')
+  expect((await savedDesign(page)).power).toBeNull()
 })

@@ -48,10 +48,14 @@ Static React SPA on GitHub Pages; no backend.
   comment there before changing it, and keep the random-pattern test passing.
 - **`src/lib/parts.ts`**: strip specs (`STRIP`), print part counts and the
   bill of materials. Lengths are rounded to the centimetre before `ceil`.
+- **`src/lib/dimensions.ts`**: overall size and jumper lengths. Canvas
+  units become metres via `toMeters()` (one side = `grid.size` units =
+  `sideLength` m). Sizes are between channel centre lines.
 - **`src/lib/view.ts`**: schematic zoom/pan transform and its inverse for hit
   testing. **`src/lib/draw.ts`**: all canvas drawing, as plain functions.
 - **`src/lib/design.ts`**: the persisted design (`hex-lights:design` in
-  localStorage), validated against the grid on load.
+  localStorage), validated against the grid on load. Change sides through
+  `toggleSide()`, which drops a power input no selected side touches.
 - Both canvases use CANVAS logical units (620 × 520), are scaled with CSS,
   and are backed at `devicePixelRatio` (`src/hooks/useCanvas.ts`). Convert
   pointer positions with `toCanvas()` (and `toWorld()` on the schematic).

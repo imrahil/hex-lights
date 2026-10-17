@@ -1,4 +1,5 @@
 import { RotateCcw } from 'lucide-react'
+import { formatMeters, type Size } from '../lib/dimensions'
 import type { Bill } from '../lib/parts'
 
 function Stat({ id, label, value, tone }: { id: string; label: string; value: string; tone: string }) {
@@ -10,8 +11,9 @@ function Stat({ id, label, value, tone }: { id: string; label: string; value: st
   )
 }
 
-export function Summary({ strips, bill, jumpers, onReset }: {
+export function Summary({ strips, size, bill, jumpers, onReset }: {
   strips: number
+  size: Size | null
   bill: Bill
   jumpers: number
   onReset: () => void
@@ -21,6 +23,19 @@ export function Summary({ strips, bill, jumpers, onReset }: {
       <h2 className="mb-4 text-lg font-bold text-slate-800">Calculations</h2>
       <div className="space-y-3">
         <Stat id="strips" label="LED Strips" value={String(strips)} tone="bg-slate-50 text-slate-700" />
+        <div className="rounded-lg bg-sky-50 p-3 text-sky-700">
+          <div className="flex items-center justify-between">
+            <span>Overall Size</span>
+            <span data-testid="size" className="text-2xl font-bold">
+              {size ? `${size.width.toFixed(2)} × ${formatMeters(size.height)}` : '–'}
+            </span>
+          </div>
+          {size && (
+            <p className="mt-1 text-xs text-sky-600">
+              Width × height between channel centre lines
+            </p>
+          )}
+        </div>
         <Stat id="length" label="Total Length" value={`${bill.length.toFixed(2)} m`} tone="bg-amber-50 text-amber-700" />
         <Stat id="power" label="Total Power" value={`${bill.watts.toFixed(1)} W`} tone="bg-red-50 text-red-700" />
         <Stat id="jumpers" label="Jumper Wires" value={String(jumpers)} tone="bg-orange-50 text-orange-700" />

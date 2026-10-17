@@ -1,3 +1,5 @@
+import type { Side } from '../types'
+
 export interface Design {
   /** Keys of the selected sides. */
   sides: string[]
@@ -12,6 +14,18 @@ export const DEFAULT_DESIGN: Design = { sides: [], sideLength: 0.5, power: null 
 export const SIDE_LENGTH = { min: 0.1, max: 2, step: 0.05 }
 
 const STORAGE_KEY = 'hex-lights:design'
+
+/**
+ * Adds or removes a side. A power input left on no selected side is dropped,
+ * so it doesn't reappear when sides are added back later.
+ */
+export function toggleSide(design: Design, key: string, allSides: readonly Side[]): Design {
+  const sides = design.sides.includes(key) ? design.sides.filter((k) => k !== key) : [...design.sides, key]
+  const selected = new Set(sides)
+  const powered = allSides.some((s) => selected.has(s.key) && (s.a.key === design.power || s.b.key === design.power))
+
+  return { ...design, sides, power: powered ? design.power : null }
+}
 
 /** Reads a saved design, dropping anything that doesn't fit the current grid. */
 export function parseDesign(raw: string | null, validSides: ReadonlySet<string>): Design {

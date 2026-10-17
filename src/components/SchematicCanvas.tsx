@@ -9,9 +9,10 @@ import { toCanvas, toWorld } from '../lib/view'
 import type { Junction } from '../lib/wiring'
 import { Hint, IconButton, Panel } from './ui'
 
-export function SchematicCanvas({ grid, sides, plan, junctions, onPickPower }: {
+export function SchematicCanvas({ grid, sides, sideLength, plan, junctions, onPickPower }: {
   grid: Grid
   sides: readonly Side[]
+  sideLength: number
   plan: WiringPlan
   junctions: ReadonlyMap<string, Junction>
   onPickPower: (vertexKey: string) => void
@@ -20,8 +21,8 @@ export function SchematicCanvas({ grid, sides, plan, junctions, onPickPower }: {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const { view, dragging, zoomBy, reset, consumeDrag, handlers } = useZoomPan(canvasRef)
   const draw = useCallback(
-    (ctx: CanvasRenderingContext2D) => drawSchematic(ctx, { grid, sides, plan, junctions, view }),
-    [grid, sides, plan, junctions, view],
+    (ctx: CanvasRenderingContext2D) => drawSchematic(ctx, { grid, sides, plan, junctions, view, sideLength }),
+    [grid, sides, plan, junctions, view, sideLength],
   )
   const drawRef = useCanvas(draw)
 
