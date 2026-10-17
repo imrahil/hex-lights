@@ -1,0 +1,13 @@
+node_modules
+dist
+dist-ssr
+dist-e2e
+*.local
+.DS_Store
+.vite
+*.tsbuildinfo
+.claude/settings.local.json
+.claude/worktrees/
+test-results
+playwright-report
+coverage
