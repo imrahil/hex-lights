@@ -13,6 +13,11 @@ A planner for a hexagon LED garage light, built from COB LED strip in
   to pan.
 - **3D print parts**: straight channels, 120° corners, 3-way connectors and
   end caps.
+- **Transparent covers**: one per strip, counted by end shape: angled where
+  it meets one other cover (left- or right-hand), pointed where it meets two,
+  flat at an end cap. Mirror-image shapes are listed separately, because a
+  cover can't be flipped. "Show covers" draws each one on the pattern with
+  its code.
 - **Totals and shopping list**: overall size, strip length, power, power
   supply current (minimum and with 20 % headroom), how much strip and jumper
   cable to buy, and a warning when one chain is too long to feed from one

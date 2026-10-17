@@ -156,3 +156,32 @@ test('grid size stops at its limits', async ({ page }) => {
   await expect(page.getByLabel('Rows', { exact: true })).toHaveText('1')
   await expect(page.getByRole('button', { name: 'Fewer rows' })).toBeDisabled()
 })
+
+test('transparent covers are counted by shape', async ({ page }) => {
+  const twoHexagons = [...new Set([...hexSides(1, 1), ...hexSides(1, 2)])]
+
+  await selectSides(page, twoHexagons)
+
+  await expect(page.getByTestId('covers-total')).toHaveText('11')
+  await expect(page.getByTestId('cover-A')).toHaveText('6')
+  await expect(page.getByTestId('cover-B')).toHaveText('1')
+  await expect(page.getByTestId('cover-C')).toHaveText('2')
+  await expect(page.getByTestId('cover-D')).toHaveText('2')
+  await expect(page.getByTestId('cover-J')).toHaveCount(0)
+})
+
+test('covers can be shown on the pattern', async ({ page }) => {
+  const toggle = page.getByRole('button', { name: 'Show covers' })
+
+  await selectSides(page, hexSides(1, 1))
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false')
+  await toggle.click()
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true')
+
+  // Sides still toggle with covers shown.
+  await clickCanvas(pattern(page), midpoint(hexSides(1, 1)[0]))
+  await expect(page.getByTestId('strips')).toHaveText('5')
+  await expect(page.getByTestId('cover-G')).toHaveText('1')
+  await expect(page.getByTestId('cover-H')).toHaveText('1')
+  await expect(page.getByTestId('cover-A')).toHaveText('3')
+})
