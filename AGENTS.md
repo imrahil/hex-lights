@@ -48,8 +48,13 @@ Static React SPA on GitHub Pages; no backend.
   `planWiring()`, which orders the selected sides into runs joined by
   jumpers. Runs start at odd junctions and follow Fleury's rule; see the
   comment there before changing it, and keep the random-pattern test passing.
-- **`src/lib/parts.ts`**: strip specs (`STRIP`), print part counts and the
-  bill of materials. Lengths are rounded to the centimetre before `ceil`.
+- **`src/lib/parts.ts`**: strip specs (`STRIP`), channel sizes (`CHANNEL`),
+  print part counts and the bill of materials. A side is never chosen
+  directly: the design stores the straight piece (`straight`, mm, one of
+  `CHANNEL.straights`) and `sideLengthOf()` adds two 42 mm corner arms.
+  Everything downstream (strip length, dimensions, jumpers, covers) takes
+  that side length in metres. Lengths are rounded to the centimetre before
+  `ceil`.
 - **`src/lib/covers.ts`**: transparent covers, one per side. Each end is
   cut `flat` (end cap), `point` (3-way) or mitred `left`/`right` (corner;
   the edge on the inside of the turn comes up short, relative to the side's
@@ -65,7 +70,8 @@ Static React SPA on GitHub Pages; no backend.
   testing. **`src/lib/draw.ts`**: all canvas drawing, as plain functions.
 - **`src/lib/design.ts`**: the persisted design (`hex-lights:design` in
   localStorage), including the grid size, validated against its grid on
-  load (designs saved without a size are 4 × 4). Change it through
+  load (designs saved without a size are 4 × 4; designs with the old free
+  `sideLength` get the straight piece whose side comes closest). Change it through
   `toggleSide()` and `resizeGrid()`, which drop sides that no longer fit and
   a power input no selected side touches.
 - Both canvases draw in the grid's logical units, are sized with CSS

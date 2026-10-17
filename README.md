@@ -21,7 +21,10 @@ A planner for a hexagon LED garage light, built from COB LED strip in
 - **Totals and shopping list**: overall size, strip length, power, power
   supply current (minimum and with 20 % headroom), how much strip and jumper
   cable to buy, and a warning when one chain is too long to feed from one
-  end. Any side length from 0.1 m to 2 m.
+  end.
+- **Channel size**: pick the straight channel piece (50, 66, 100, 150, 200
+  or 250 mm). Every side also has two 42 mm corner arms, so a side is the
+  straight piece + 84 mm (134–334 mm), and all lengths follow from that.
 
 The design is saved in the browser, so it survives a reload.
 

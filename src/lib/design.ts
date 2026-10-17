@@ -1,5 +1,6 @@
 import type { Side } from '../types'
 import { buildGrid, GRID_LIMITS } from './grid'
+import { CHANNEL, nearestStraight } from './parts'
 
 export interface Design {
   /** Honeycomb size in hexagons. */
@@ -7,8 +8,8 @@ export interface Design {
   rows: number
   /** Keys of the selected sides. */
   sides: string[]
-  /** Length of one side in metres. */
-  sideLength: number
+  /** Length of the straight channel piece on every side, in mm: one of CHANNEL.straights. */
+  straight: number
   /** Vertex key where the supply connects, or null to pick one automatically. */
   power: string | null
 }
@@ -17,11 +18,9 @@ export const DEFAULT_DESIGN: Design = {
   cols: GRID_LIMITS.default,
   rows: GRID_LIMITS.default,
   sides: [],
-  sideLength: 0.5,
+  straight: CHANNEL.defaultStraight,
   power: null,
 }
-
-export const SIDE_LENGTH = { min: 0.1, max: 2, step: 0.05 }
 
 const STORAGE_KEY = 'hex-lights:design'
 
@@ -63,9 +62,14 @@ export function resizeGrid(design: Design, cols: number, rows: number): Design {
   return { ...design, cols: grid.cols, rows: grid.rows, sides, power: keepPower(design.power, new Set(sides), grid.sides) }
 }
 
-/** Reads a saved design, dropping anything that doesn't fit its grid. Designs saved before v0.3 have no size: 4 × 4. */
+/**
+ * Reads a saved design, dropping anything that doesn't fit its grid.
+ * Designs saved before v0.3 have no size: 4 × 4. Designs saved before v0.5
+ * have a free side length in metres instead of a straight piece: they get
+ * the straight piece that comes closest.
+ */
 export function parseDesign(raw: string | null): Design {
-  let data: Partial<Design> = {}
+  let data: Partial<Design> & { sideLength?: unknown } = {}
 
   try {
     data = JSON.parse(raw ?? '{}') ?? {}
@@ -73,12 +77,15 @@ export function parseDesign(raw: string | null): Design {
     return DEFAULT_DESIGN
   }
 
-  const length = Number(data.sideLength)
+  const legacyLength = Number(data.sideLength)
+  const straight = CHANNEL.straights.includes(Number(data.straight))
+    ? Number(data.straight)
+    : data.sideLength != null && Number.isFinite(legacyLength) ? nearestStraight(legacyLength) : CHANNEL.defaultStraight
   const sides = Array.isArray(data.sides) ? data.sides.filter((k) => typeof k === 'string') : []
   const design: Design = {
     ...DEFAULT_DESIGN,
     sides: [...new Set(sides)],
-    sideLength: Number.isFinite(length) ? clamp(length, SIDE_LENGTH.min, SIDE_LENGTH.max) : DEFAULT_DESIGN.sideLength,
+    straight,
     power: typeof data.power === 'string' ? data.power : null,
   }
 

@@ -5,14 +5,14 @@ import { PatternCanvas } from './components/PatternCanvas'
 import { PrintPartsCard } from './components/PrintPartsCard'
 import { SchematicCanvas } from './components/SchematicCanvas'
 import { ShoppingList } from './components/ShoppingList'
-import { SideLengthSlider } from './components/SideLengthSlider'
+import { ChannelSlider } from './components/ChannelSlider'
 import { StripSpecs } from './components/StripSpecs'
 import { Summary } from './components/Summary'
 import { covers } from './lib/covers'
 import { loadDesign, resizeGrid, saveDesign, toggleSide } from './lib/design'
 import { jumperLengths, patternSize } from './lib/dimensions'
 import { buildGrid } from './lib/grid'
-import { billOfMaterials, printParts } from './lib/parts'
+import { billOfMaterials, printParts, sideLengthOf } from './lib/parts'
 import { junctions, planWiring } from './lib/wiring'
 
 export function App() {
@@ -27,9 +27,10 @@ export function App() {
   const plan = useMemo(() => planWiring(sides, design.power), [sides, design.power])
   const parts = useMemo(() => printParts(sides), [sides])
   const coverList = useMemo(() => covers(sides), [sides])
-  const bill = billOfMaterials(sides.length, design.sideLength)
-  const size = patternSize(sides, grid.size, design.sideLength)
-  const jumpers = jumperLengths(plan.jumpers, grid.size, design.sideLength)
+  const sideLength = sideLengthOf(design.straight)
+  const bill = billOfMaterials(sides.length, sideLength)
+  const size = patternSize(sides, grid.size, sideLength)
+  const jumpers = jumperLengths(plan.jumpers, grid.size, sideLength)
 
   const onToggleSide = (key: string) => setDesign((d) => toggleSide(d, key, grid.sides))
 
@@ -44,16 +45,16 @@ export function App() {
 
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="space-y-4 lg:col-span-2">
-            <PatternCanvas grid={grid} sides={sides} covers={coverList} sideLength={design.sideLength} onToggle={onToggleSide} />
-            <SchematicCanvas grid={grid} sides={sides} sideLength={design.sideLength} plan={plan} junctions={joints} onPickPower={togglePower} />
+            <PatternCanvas grid={grid} sides={sides} covers={coverList} sideLength={sideLength} onToggle={onToggleSide} />
+            <SchematicCanvas grid={grid} sides={sides} sideLength={sideLength} plan={plan} junctions={joints} onPickPower={togglePower} />
             <GridSizeControl cols={design.cols} rows={design.rows} onChange={(cols, rows) => setDesign((d) => resizeGrid(d, cols, rows))} />
-            <SideLengthSlider value={design.sideLength} onChange={(sideLength) => setDesign((d) => ({ ...d, sideLength }))} />
+            <ChannelSlider value={design.straight} onChange={(straight) => setDesign((d) => ({ ...d, straight }))} />
           </div>
 
           <div className="space-y-4">
             <Summary strips={sides.length} size={size} bill={bill} jumpers={plan.jumpers.length} onReset={reset} />
-            <PrintPartsCard parts={parts} sideLength={design.sideLength} />
-            <CoversCard covers={coverList} sideLength={design.sideLength} />
+            <PrintPartsCard parts={parts} straight={design.straight} />
+            <CoversCard covers={coverList} sideLength={sideLength} />
             <StripSpecs />
             <ShoppingList bill={bill} jumperLengths={jumpers} />
           </div>

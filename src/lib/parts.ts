@@ -15,6 +15,26 @@ export const STRIP = {
   maxFeedMeters: 5,
 }
 
+/**
+ * The printed channel for one side: a straight piece in one of these lengths,
+ * plus a 42 mm arm of the corner, 3-way or end piece at each end. All in mm.
+ */
+export const CHANNEL = {
+  straights: [50, 66, 100, 150, 200, 250],
+  defaultStraight: 150,
+  cornerArm: 42,
+}
+
+/** Length of one side, vertex to vertex, in metres: the straight piece and two corner arms. */
+export function sideLengthOf(straightMm: number): number {
+  return (straightMm + 2 * CHANNEL.cornerArm) / 1000
+}
+
+/** The straight piece whose side length is closest to `meters`. */
+export function nearestStraight(meters: number): number {
+  return CHANNEL.straights.reduce((best, mm) => (Math.abs(sideLengthOf(mm) - meters) < Math.abs(sideLengthOf(best) - meters) ? mm : best))
+}
+
 /** Run a power supply at no more than this share of its rating. */
 const SUPPLY_LOAD = 0.8
 
