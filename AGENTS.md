@@ -50,6 +50,14 @@ Static React SPA on GitHub Pages; no backend.
   comment there before changing it, and keep the random-pattern test passing.
 - **`src/lib/parts.ts`**: strip specs (`STRIP`), print part counts and the
   bill of materials. Lengths are rounded to the centimetre before `ceil`.
+- **`src/lib/covers.ts`**: transparent covers, one per side. Each end is
+  cut `flat` (end cap), `point` (3-way) or mitred `left`/`right` (corner;
+  the edge on the inside of the turn comes up short, relative to the side's
+  a → b direction). `COVER_TYPES` is the fixed catalogue of the 10 shapes:
+  turning a cover end for end swaps left and right (`reversed()`), but a
+  cover can't be flipped, so mirror images are separate types. **Codes A–J
+  name physical parts: never reorder or recode them.** `coverOutline()`
+  is the one shape function for both the pattern canvas and the card icons.
 - **`src/lib/dimensions.ts`**: overall size and jumper lengths. Canvas
   units become metres via `toMeters()` (one side = `grid.size` units =
   `sideLength` m). Sizes are between channel centre lines.

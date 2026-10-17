@@ -1,4 +1,5 @@
 import type { Extent, Grid, Point, Side, View, WiringPlan } from '../types'
+import { coverOutline, type Cover } from './covers'
 import { bounds, formatMeters, jumperLengths, patternSize, type Bounds, type Size } from './dimensions'
 import { hexCorners } from './grid'
 import { STRIP } from './parts'
@@ -21,6 +22,8 @@ const COLORS = {
   muted: '#64748b',
   dimension: '#475569',
   extension: '#94a3b8',
+  cover: '#0369a1',
+  coverFill: 'rgba(186, 230, 253, 0.6)',
 }
 
 function hexPath(ctx: CanvasRenderingContext2D, center: Point, size: number) {
@@ -65,7 +68,15 @@ export function uiScale(unitsPerPixel: number): number {
 
 const font = (px: number, k: number, weight = 'bold') => `${weight} ${px * k}px sans-serif`
 
-export function drawPattern(ctx: CanvasRenderingContext2D, grid: Grid, sides: readonly Side[], sideLength: number, k = 1) {
+/** `covers`: also outline every transparent cover, with its code. */
+export function drawPattern(
+  ctx: CanvasRenderingContext2D,
+  grid: Grid,
+  sides: readonly Side[],
+  sideLength: number,
+  k = 1,
+  covers: readonly Cover[] = [],
+) {
   ctx.clearRect(0, 0, grid.width, grid.height)
 
   for (const hex of grid.hexes) {
@@ -81,11 +92,45 @@ export function drawPattern(ctx: CanvasRenderingContext2D, grid: Grid, sides: re
     line(ctx, side.a, side.b, COLORS.strip, 6 * k)
   }
 
+  drawCovers(ctx, covers, k)
+
   const box = bounds(sides)
   const size = patternSize(sides, grid.size, sideLength)
 
   if (box && size) {
     drawDimensions(ctx, box, size, grid, k)
+  }
+}
+
+function drawCovers(ctx: CanvasRenderingContext2D, covers: readonly Cover[], k: number) {
+  for (const cover of covers) {
+    const [first, ...rest] = coverOutline(cover.from, cover.to, cover.ends, 7 * k)
+
+    ctx.beginPath()
+    ctx.moveTo(first.x, first.y)
+
+    for (const p of rest) {
+      ctx.lineTo(p.x, p.y)
+    }
+
+    ctx.closePath()
+    ctx.fillStyle = COLORS.coverFill
+    ctx.fill()
+    ctx.strokeStyle = COLORS.cover
+    ctx.lineWidth = 1.2 * k
+    ctx.lineJoin = 'miter'
+    ctx.stroke()
+  }
+
+  // Codes last, so no outline crosses one.
+  for (const cover of covers) {
+    const mid = { x: (cover.from.x + cover.to.x) / 2, y: (cover.from.y + cover.to.y) / 2 }
+
+    ctx.beginPath()
+    ctx.arc(mid.x, mid.y, 8 * k, 0, Math.PI * 2)
+    ctx.fillStyle = COLORS.cover
+    ctx.fill()
+    label(ctx, cover.type.code, mid, font(10, k), '#fff')
   }
 }
 

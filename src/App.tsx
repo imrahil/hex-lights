@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { CoversCard } from './components/CoversCard'
 import { GridSizeControl } from './components/GridSizeControl'
 import { PatternCanvas } from './components/PatternCanvas'
 import { PrintPartsCard } from './components/PrintPartsCard'
@@ -7,6 +8,7 @@ import { ShoppingList } from './components/ShoppingList'
 import { SideLengthSlider } from './components/SideLengthSlider'
 import { StripSpecs } from './components/StripSpecs'
 import { Summary } from './components/Summary'
+import { covers } from './lib/covers'
 import { loadDesign, resizeGrid, saveDesign, toggleSide } from './lib/design'
 import { jumperLengths, patternSize } from './lib/dimensions'
 import { buildGrid } from './lib/grid'
@@ -24,6 +26,7 @@ export function App() {
   const joints = useMemo(() => junctions(sides), [sides])
   const plan = useMemo(() => planWiring(sides, design.power), [sides, design.power])
   const parts = useMemo(() => printParts(sides), [sides])
+  const coverList = useMemo(() => covers(sides), [sides])
   const bill = billOfMaterials(sides.length, design.sideLength)
   const size = patternSize(sides, grid.size, design.sideLength)
   const jumpers = jumperLengths(plan.jumpers, grid.size, design.sideLength)
@@ -41,7 +44,7 @@ export function App() {
 
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="space-y-4 lg:col-span-2">
-            <PatternCanvas grid={grid} sides={sides} sideLength={design.sideLength} onToggle={onToggleSide} />
+            <PatternCanvas grid={grid} sides={sides} covers={coverList} sideLength={design.sideLength} onToggle={onToggleSide} />
             <SchematicCanvas grid={grid} sides={sides} sideLength={design.sideLength} plan={plan} junctions={joints} onPickPower={togglePower} />
             <GridSizeControl cols={design.cols} rows={design.rows} onChange={(cols, rows) => setDesign((d) => resizeGrid(d, cols, rows))} />
             <SideLengthSlider value={design.sideLength} onChange={(sideLength) => setDesign((d) => ({ ...d, sideLength }))} />
@@ -50,6 +53,7 @@ export function App() {
           <div className="space-y-4">
             <Summary strips={sides.length} size={size} bill={bill} jumpers={plan.jumpers.length} onReset={reset} />
             <PrintPartsCard parts={parts} sideLength={design.sideLength} />
+            <CoversCard covers={coverList} sideLength={design.sideLength} />
             <StripSpecs />
             <ShoppingList bill={bill} jumperLengths={jumpers} />
           </div>
