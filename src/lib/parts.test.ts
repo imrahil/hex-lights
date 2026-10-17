@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildGrid } from './grid'
 import { hexAt, hexSides, sidesAt } from './fixtures.test-utils'
-import { billOfMaterials, printParts } from './parts'
+import { billOfMaterials, CHANNEL, nearestStraight, printParts, sideLengthOf } from './parts'
 
 const grid = buildGrid()
 
@@ -57,5 +57,26 @@ describe('power supply sizing', () => {
   it('flags a chain too long to feed from one end', () => {
     expect(billOfMaterials(10, 0.5).needsInjection).toBe(false)
     expect(billOfMaterials(11, 0.5).needsInjection).toBe(true)
+  })
+})
+
+describe('channel sizes', () => {
+  it('makes a side from the straight piece and two 42 mm corner arms', () => {
+    expect(sideLengthOf(50)).toBeCloseTo(0.134)
+    expect(sideLengthOf(150)).toBeCloseTo(0.234)
+    expect(sideLengthOf(250)).toBeCloseTo(0.334)
+  })
+
+  it('offers 50, 66, 100, then every 50 mm up to 250', () => {
+    expect(CHANNEL.straights).toEqual([50, 66, 100, 150, 200, 250])
+  })
+
+  it('finds the straight piece closest to a side length', () => {
+    expect(nearestStraight(0.15)).toBe(66)
+    expect(nearestStraight(5)).toBe(250)
+  })
+
+  it('counts LED strip over the full side, corner arms included', () => {
+    expect(billOfMaterials(6, sideLengthOf(150)).length).toBe(1.4)
   })
 })

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { PrintParts } from '../lib/parts'
+import { CHANNEL, type PrintParts } from '../lib/parts'
 
 function PartRow({ id, icon, label, count }: { id: string; icon: ReactNode; label: string; count: number }) {
   return (
@@ -21,7 +21,7 @@ function PathIcon({ d }: { d: string }) {
   )
 }
 
-export function PrintPartsCard({ parts, sideLength }: { parts: PrintParts; sideLength: number }) {
+export function PrintPartsCard({ parts, straight }: { parts: PrintParts; straight: number }) {
   return (
     <section className="rounded-xl border-2 border-purple-200 bg-purple-50 p-5 shadow-lg">
       <h2 className="mb-3 text-lg font-bold text-purple-900">🖨️ 3D Print Parts</h2>
@@ -32,7 +32,7 @@ export function PrintPartsCard({ parts, sideLength }: { parts: PrintParts; sideL
         <PartRow id="part-end-caps" icon={<div className="h-3 w-4 rounded-r bg-purple-500" />} label="End caps" count={parts.endCaps} />
       </div>
       <p className="mt-3 text-xs text-purple-600">
-        Channel length: {(sideLength * 100).toFixed(0)} cm each
+        Straight channels: {straight} mm each. Corners, 3-way connectors and end caps have {CHANNEL.cornerArm} mm arms.
       </p>
     </section>
   )

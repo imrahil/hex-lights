@@ -18,7 +18,7 @@ describe('parseDesign', () => {
   })
 
   it('restores a saved design', () => {
-    const saved = { cols: 6, rows: 5, sides: [...ring, ...farRing], sideLength: 0.75, power: farRing[0].split('|')[0] }
+    const saved = { cols: 6, rows: 5, sides: [...ring, ...farRing], straight: 200, power: farRing[0].split('|')[0] }
 
     expect(parseDesign(JSON.stringify(saved))).toEqual(saved)
   })
@@ -37,9 +37,17 @@ describe('parseDesign', () => {
     expect(parseDesign(JSON.stringify(raw)).sides).toEqual([ring[0]])
   })
 
-  it('keeps the side length within the slider range', () => {
-    expect(parseDesign(JSON.stringify({ sideLength: 10 })).sideLength).toBe(2)
-    expect(parseDesign(JSON.stringify({ sideLength: 'long' })).sideLength).toBe(DEFAULT_DESIGN.sideLength)
+  it('only accepts straight pieces that can be printed', () => {
+    expect(parseDesign(JSON.stringify({ straight: 66 })).straight).toBe(66)
+    expect(parseDesign(JSON.stringify({ straight: 120 })).straight).toBe(DEFAULT_DESIGN.straight)
+    expect(parseDesign(JSON.stringify({ straight: 'long' })).straight).toBe(DEFAULT_DESIGN.straight)
+  })
+
+  it('gives a design saved with a free side length the closest straight piece', () => {
+    // Sides were 0.5 m: the longest piece, 250 + 2 × 42 = 334 mm, comes closest.
+    expect(parseDesign(JSON.stringify({ sideLength: 0.5 })).straight).toBe(250)
+    expect(parseDesign(JSON.stringify({ sideLength: 0.2 })).straight).toBe(100)
+    expect(parseDesign(JSON.stringify({ sideLength: 0.1 })).straight).toBe(50)
   })
 
   it('ignores a power input that is not on a selected side', () => {

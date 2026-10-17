@@ -42,7 +42,7 @@ export function CoversCard({ covers, sideLength }: { covers: readonly Cover[]; s
         ))}
       </ul>
       <p className="mt-3 text-xs text-sky-700">
-        One cover per strip, {(sideLength * 100).toFixed(0)} cm along its centre line. Angled ends meet one
+        One cover per strip, {Math.round(sideLength * 1000)} mm along its centre line. Angled ends meet one
         other cover, pointed ends meet two, flat ends stop at an end cap. Covers can't be flipped, so
         mirrored shapes are separate prints. Show covers on the pattern to see where each one goes.
       </p>
