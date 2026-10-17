@@ -20,7 +20,16 @@ export interface Hex extends Point {
   col: number
 }
 
-export interface Grid {
+/** Size of a canvas in its own logical units. */
+export interface Extent {
+  width: number
+  height: number
+}
+
+/** A honeycomb, and the extent of the canvas that shows it. */
+export interface Grid extends Extent {
+  cols: number
+  rows: number
   size: number
   hexes: Hex[]
   sides: Side[]

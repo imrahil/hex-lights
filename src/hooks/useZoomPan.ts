@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent, type RefObject } from 'react'
 import type { Point, View } from '../types'
-import { CANVAS } from '../lib/grid'
 import { clampZoom, DEFAULT_VIEW } from '../lib/view'
 
 /** Pointer travel (CSS px) before a press counts as a drag rather than a click. */
@@ -15,7 +14,7 @@ interface Drag {
 }
 
 /** Wheel to zoom, drag to pan. A drag never ends in a click. */
-export function useZoomPan(canvasRef: RefObject<HTMLCanvasElement | null>) {
+export function useZoomPan(canvasRef: RefObject<HTMLCanvasElement | null>, canvasWidth: number) {
   const [view, setView] = useState<View>(DEFAULT_VIEW)
   const [dragging, setDragging] = useState(false)
   const drag = useRef<Drag | null>(null)
@@ -53,7 +52,7 @@ export function useZoomPan(canvasRef: RefObject<HTMLCanvasElement | null>) {
     drag.current = {
       start: { x: e.clientX, y: e.clientY },
       pan: view.pan,
-      scale: CANVAS.width / e.currentTarget.getBoundingClientRect().width,
+      scale: canvasWidth / e.currentTarget.getBoundingClientRect().width,
       moved: false,
     }
     e.currentTarget.setPointerCapture(e.pointerId)

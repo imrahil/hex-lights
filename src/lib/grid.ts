@@ -1,11 +1,18 @@
 import type { Grid, Hex, Point, Side, Vertex } from '../types'
 
-/** Logical size of both canvases. They are scaled with CSS and drawn at the device pixel ratio. */
-export const CANVAS = { width: 620, height: 520 }
-
 export const HEX_SIZE = 70
 
+/** Columns and rows of hexagons the user can choose. */
+export const GRID_LIMITS = { min: 1, max: 8, default: 4 }
+
+/**
+ * Centre of the top-left hexagon. Never change it: vertex keys, and so every
+ * saved design, are measured from here.
+ */
 const ORIGIN: Point = { x: 120, y: 100 }
+
+/** Canvas space right of and below the honeycomb (left and top come from ORIGIN). Room for dimension lines. */
+const MARGIN = { right: 15, bottom: 35 }
 
 /** Corners of a pointy-top hexagon, clockwise from the upper-right one. */
 export function hexCorners(center: Point, size: number): Point[] {
@@ -26,7 +33,7 @@ export function hexCorners(center: Point, size: number): Point[] {
  * half-sizes, so vertices are keyed by lattice indices: neighbouring hexagons
  * agree on a shared corner without comparing floats.
  */
-export function buildGrid(cols = 4, rows = 4, size = HEX_SIZE, origin: Point = ORIGIN): Grid {
+export function buildGrid(cols = GRID_LIMITS.default, rows = GRID_LIMITS.default, size = HEX_SIZE, origin: Point = ORIGIN): Grid {
   const width = size * Math.sqrt(3)
   const hexes: Hex[] = []
   const vertices = new Map<string, Vertex>()
@@ -61,7 +68,19 @@ export function buildGrid(cols = 4, rows = 4, size = HEX_SIZE, origin: Point = O
     }
   }
 
-  return { size, hexes, sides: [...sides.values()] }
+  // Odd rows are shifted right by half a hexagon, so any second row widens the grid.
+  const right = origin.x + (cols - 1) * width + (rows > 1 ? width / 2 : 0) + width / 2
+  const bottom = origin.y + (rows - 1) * size * 1.5 + size
+
+  return {
+    cols,
+    rows,
+    size,
+    width: Math.round(right + MARGIN.right),
+    height: Math.round(bottom + MARGIN.bottom),
+    hexes,
+    sides: [...sides.values()],
+  }
 }
 
 function makeSide(a: Vertex, b: Vertex): Side {

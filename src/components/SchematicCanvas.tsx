@@ -3,11 +3,11 @@ import { Move, Zap, ZoomIn, ZoomOut } from 'lucide-react'
 import type { Grid, Side, WiringPlan } from '../types'
 import { useCanvas } from '../hooks/useCanvas'
 import { useZoomPan } from '../hooks/useZoomPan'
-import { drawSchematic } from '../lib/draw'
-import { CANVAS, vertexAt } from '../lib/grid'
-import { toCanvas, toWorld } from '../lib/view'
+import { drawSchematic, uiScale } from '../lib/draw'
+import { vertexAt } from '../lib/grid'
+import { hitTolerance, toCanvas, toWorld } from '../lib/view'
 import type { Junction } from '../lib/wiring'
-import { Hint, IconButton, Panel } from './ui'
+import { canvasStyle, Hint, IconButton, Panel } from './ui'
 
 export function SchematicCanvas({ grid, sides, sideLength, plan, junctions, onPickPower }: {
   grid: Grid
@@ -19,12 +19,12 @@ export function SchematicCanvas({ grid, sides, sideLength, plan, junctions, onPi
 }) {
   // useZoomPan needs the element for its wheel listener; useCanvas owns the ref, so bridge them.
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const { view, dragging, zoomBy, reset, consumeDrag, handlers } = useZoomPan(canvasRef)
+  const { view, dragging, zoomBy, reset, consumeDrag, handlers } = useZoomPan(canvasRef, grid.width)
   const draw = useCallback(
-    (ctx: CanvasRenderingContext2D) => drawSchematic(ctx, { grid, sides, plan, junctions, view, sideLength }),
+    (ctx: CanvasRenderingContext2D, unitsPerPixel: number) => drawSchematic(ctx, { grid, sides, plan, junctions, view, sideLength, k: uiScale(unitsPerPixel) }),
     [grid, sides, plan, junctions, view, sideLength],
   )
-  const drawRef = useCanvas(draw)
+  const drawRef = useCanvas(draw, grid)
 
   const setRef = useCallback((canvas: HTMLCanvasElement | null) => {
     canvasRef.current = canvas
@@ -36,8 +36,10 @@ export function SchematicCanvas({ grid, sides, sideLength, plan, junctions, onPi
       return
     }
 
-    const point = toWorld(toCanvas({ x: e.clientX, y: e.clientY }, e.currentTarget.getBoundingClientRect()), view)
-    const vertex = vertexAt([...junctions.values()].map((j) => j.vertex), point)
+    const rect = e.currentTarget.getBoundingClientRect()
+    const point = toWorld(toCanvas({ x: e.clientX, y: e.clientY }, rect, grid), view, grid)
+    const tolerance = hitTolerance(15, 12, rect, grid) / view.zoom
+    const vertex = vertexAt([...junctions.values()].map((j) => j.vertex), point, tolerance)
 
     if (vertex) {
       onPickPower(vertex.key)
@@ -68,8 +70,8 @@ export function SchematicCanvas({ grid, sides, sideLength, plan, junctions, onPi
         {...handlers}
         data-testid="schematic"
         aria-label="Wiring schematic. Scroll to zoom, drag to pan, click a junction to set the power input."
-        className="mx-auto block w-full max-w-[620px] touch-none rounded-lg border border-slate-200 bg-slate-50"
-        style={{ aspectRatio: `${CANVAS.width} / ${CANVAS.height}`, cursor: dragging ? 'grabbing' : 'grab' }}
+        className="mx-auto block touch-none rounded-lg border border-slate-200 bg-slate-50"
+        style={{ ...canvasStyle(grid), cursor: dragging ? 'grabbing' : 'grab' }}
       />
       <Hint>Scroll to zoom • Drag to pan • Click vertex to set power input</Hint>
     </Panel>

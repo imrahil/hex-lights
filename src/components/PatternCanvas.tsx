@@ -1,10 +1,10 @@
 import { useCallback, type MouseEvent } from 'react'
 import type { Grid, Side } from '../types'
 import { useCanvas } from '../hooks/useCanvas'
-import { drawPattern } from '../lib/draw'
-import { CANVAS, sideAt } from '../lib/grid'
-import { toCanvas } from '../lib/view'
-import { Hint, Panel } from './ui'
+import { drawPattern, uiScale } from '../lib/draw'
+import { sideAt } from '../lib/grid'
+import { hitTolerance, toCanvas } from '../lib/view'
+import { canvasStyle, Hint, Panel } from './ui'
 
 export function PatternCanvas({ grid, sides, sideLength, onToggle }: {
   grid: Grid
@@ -12,12 +12,13 @@ export function PatternCanvas({ grid, sides, sideLength, onToggle }: {
   sideLength: number
   onToggle: (sideKey: string) => void
 }) {
-  const draw = useCallback((ctx: CanvasRenderingContext2D) => drawPattern(ctx, grid, sides, sideLength), [grid, sides, sideLength])
-  const ref = useCanvas(draw)
+  const draw = useCallback((ctx: CanvasRenderingContext2D, unitsPerPixel: number) => drawPattern(ctx, grid, sides, sideLength, uiScale(unitsPerPixel)), [grid, sides, sideLength])
+  const ref = useCanvas(draw, grid)
 
   const onClick = (e: MouseEvent<HTMLCanvasElement>) => {
-    const point = toCanvas({ x: e.clientX, y: e.clientY }, e.currentTarget.getBoundingClientRect())
-    const side = sideAt(grid.sides, point)
+    const rect = e.currentTarget.getBoundingClientRect()
+    const point = toCanvas({ x: e.clientX, y: e.clientY }, rect, grid)
+    const side = sideAt(grid.sides, point, hitTolerance(12, 10, rect, grid))
 
     if (side) {
       onToggle(side.key)
@@ -31,8 +32,8 @@ export function PatternCanvas({ grid, sides, sideLength, onToggle }: {
         onClick={onClick}
         data-testid="pattern"
         aria-label="Honeycomb pattern. Click a hexagon side to add or remove an LED strip."
-        className="mx-auto block w-full max-w-[620px] cursor-crosshair rounded-lg border border-slate-200 bg-white"
-        style={{ aspectRatio: `${CANVAS.width} / ${CANVAS.height}` }}
+        className="mx-auto block cursor-crosshair rounded-lg border border-slate-200 bg-white"
+        style={canvasStyle(grid)}
       />
       <Hint>Click on hexagon sides to select/deselect them</Hint>
     </Panel>

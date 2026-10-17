@@ -78,3 +78,31 @@ describe('hit testing', () => {
     expect(vertexAt([side.a, side.b], mid)).toBeNull()
   })
 })
+
+describe('grid size', () => {
+  it('keeps the 4 × 4 canvas at 620 × 520, so existing layouts are unchanged', () => {
+    const grid = buildGrid()
+
+    expect([grid.width, grid.height]).toEqual([620, 520])
+  })
+
+  it('fits every hexagon on the canvas for every size', () => {
+    for (let cols = 1; cols <= 8; cols++) {
+      for (let rows = 1; rows <= 8; rows++) {
+        const grid = buildGrid(cols, rows)
+        const corners = grid.hexes.flatMap((h) => hexCorners(h, grid.size))
+
+        expect(grid.hexes).toHaveLength(cols * rows)
+        expect(Math.max(...corners.map((p) => p.x))).toBeLessThanOrEqual(grid.width)
+        expect(Math.max(...corners.map((p) => p.y))).toBeLessThanOrEqual(grid.height)
+      }
+    }
+  })
+
+  it('gives a side the same key in every grid that contains it', () => {
+    const small = new Set(buildGrid(2, 3).sides.map((s) => s.key))
+    const large = new Set(buildGrid(7, 6).sides.map((s) => s.key))
+
+    expect([...small].every((k) => large.has(k))).toBe(true)
+  })
+})
